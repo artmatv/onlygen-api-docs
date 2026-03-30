@@ -192,7 +192,19 @@ Returns `StatusResponse` directly. Returns `504` on timeout.
 
 ---
 
-### 7. Webhooks (internal)
+### 7. Download Result
+
+```
+GET /api/v1/download/{task_id}
+```
+
+Proxy-downloads the result image with proper `Content-Disposition: attachment` header. Use this instead of fetching `result_url` directly to avoid CORS issues.
+
+Returns the image binary with `Content-Disposition: attachment` header. Only works for completed tasks.
+
+---
+
+### 8. Webhooks (internal)
 
 ```
 POST /api/v1/webhook/{provider}

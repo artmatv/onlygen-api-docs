@@ -148,6 +148,19 @@ notes:
   - "Billing period resets every 30 days"
 ```
 
+### GET /api/v1/download/{task_id}
+
+```yaml
+auth: true
+path_params:
+  task_id: string  # from GenerateResponse.task_id
+response: binary image with Content-Disposition attachment header
+notes:
+  - "Proxy-downloads the result image (avoids CORS issues with storage URLs)"
+  - "Only works for completed tasks"
+  - "Returns 400 if task not completed, 404 if not found"
+```
+
 ### POST /api/v1/generate/sync
 
 ```yaml
