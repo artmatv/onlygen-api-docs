@@ -1,6 +1,6 @@
 # Gesture Changer API — Integration Guide
 
-> **Version:** 2.1.0
+> **Version:** 2.2.0
 > **Base URL:** `https://onlygen.mvt-soft.work`
 > **Updated:** 2026-03-30
 
@@ -70,14 +70,14 @@ Returns all gesture presets grouped by category.
       "id": "peace_palm",
       "name": "Peace (Palm)",
       "emoji": "✌️",
-      "category": "basic",
+      "category": "popular",
       "preview_url": "https://onlygen.mvt-soft.work/static/presets/peace_palm.jpg"
     }
   ],
   "categories": [
     {"id": "basic", "label": "Basic gestures", "count": 5}
   ],
-  "total": 34,
+  "total": 23,
   "custom_gesture_supported": true
 }
 ```

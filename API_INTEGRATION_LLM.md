@@ -1,7 +1,7 @@
 # Gesture Changer API — LLM Integration Reference
 
 > Machine-readable API specification for LLM agents and code generators.
-> Version: 2.1.0 | Updated: 2026-03-30
+> Version: 2.2.0 | Updated: 2026-03-30
 
 ## API Overview
 
@@ -50,7 +50,7 @@ response_schema:
       id: string          # e.g. "peace_palm", "finger_gun", "l_pose"
       name: string        # e.g. "Peace (Palm)"
       emoji: string       # e.g. "✌️"
-      category: string    # basic|cute|face_touch|chill|number|playful|formal|interactive|luck
+      category: string    # popular|cute|face_touch|playful|number
       preview_url: string # full URL to preview image
   categories:
     type: array
@@ -192,19 +192,15 @@ behavior_when_full: "503 Service Unavailable"
 health_endpoint: "GET /health returns queue_length, queue_max_concurrency, queue_max_size"
 ```
 
-## Available Presets (34 total)
+## Available Presets (23 total)
 
 ```yaml
 categories:
-  basic (10): ["l_pose", "peace_palm", "peace_back", "thumbs_up", "thumbs_down", "ok_sign_palm", "ok_sign_back", "fist", "open_palm", "open_palm_back"]
-  playful (5): ["finger_gun_side", "finger_gun", "rock_horns_palm", "rock_horns_thumb", "rock_horns_back"]
-  number (9): ["index_up", "three_fingers_palm", "three_fingers_back", "four_fingers_palm", "four_fingers_back", "three_spread_palm", "three_spread_back", "three_compact_palm", "three_compact_back"]
+  popular (8): ["l_pose", "peace_palm", "peace_back", "thumbs_up", "ok_sign_palm", "open_palm", "open_palm_back", "fist"]
   cute (2): ["korean_love", "heart_hands"]
   face_touch (3): ["pointing_face", "chin_rest", "shush"]
-  luck (2): ["crossed_fingers_back", "crossed_fingers_palm"]
-  interactive (1): ["pointing_camera"]
-  chill (1): ["call_me"]
-  formal (1): ["salute"]
+  playful (6): ["finger_gun", "rock_horns_palm", "rock_horns_thumb", "call_me", "pointing_camera", "crossed_fingers_palm"]
+  number (4): ["index_up", "three_fingers_palm", "three_fingers_back", "four_fingers_palm"]
 ```
 
 ## Integration Patterns
