@@ -1,8 +1,8 @@
 # Gesture Changer API — Integration Guide
 
-> **Version:** 2.0.0
+> **Version:** 2.1.0
 > **Base URL:** `https://onlygen.mvt-soft.work`
-> **Updated:** 2026-03-29
+> **Updated:** 2026-03-30
 
 ## Authentication
 
@@ -32,14 +32,12 @@ X-API-Key: gc_your_api_key_here
 
 The API supports two generation engines powered by Seedream:
 
-| Engine | ID | Description |
-|--------|----|-------------|
-| **Seedream 5.0 Lite** | `seedream5` | Lightweight gesture replacement |
-| **Seedream 4.5 Edit** | `seedream4` | Precise gesture replacement |
+| Engine | ID | Description | Model |
+|--------|----|-------------|-------|
+| **Seedream 5.0 Lite** | `seedream5` | Lightweight gesture replacement, better identity preservation |
+| **Seedream 4.5 Edit** | `seedream4` | Precise gesture replacement, maximum realism |
 
 Default engine: `seedream5`.
-
-Both engines accept preset gestures, custom reference photos, custom text prompts, or a combination of reference + prompt.
 
 ---
 
@@ -69,11 +67,11 @@ Returns all gesture presets grouped by category.
 {
   "presets": [
     {
-      "id": "v_sign",
-      "name": "Peace / V Sign",
+      "id": "peace_palm",
+      "name": "Peace (Palm)",
       "emoji": "✌️",
       "category": "basic",
-      "preview_url": "https://onlygen.mvt-soft.work/static/presets/v_sign.jpg"
+      "preview_url": "https://onlygen.mvt-soft.work/static/presets/peace_palm.jpg"
     }
   ],
   "categories": [
@@ -99,13 +97,13 @@ Submits a generation task and returns immediately.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `user_photo` | file | Yes | Source photo (JPEG/PNG, max 10 MB) |
-| `gesture_id` | string | Conditional | Preset ID (e.g. `v_sign`) |
+| `user_photo` | file | Yes | Source photo (JPEG/PNG/WebP, max 10 MB) |
+| `gesture_id` | string | Conditional | Preset ID (e.g. `peace_palm`) |
 | `custom_reference` | file | No | Custom gesture reference photo |
 | `custom_prompt` | string | No | Custom text prompt (max 3000 chars) |
 | `webhook_url` | string | No | URL to receive completion callback |
 | `engine` | string | No | `seedream5` (default) or `seedream4` |
-| `aspect_ratio` | string | No | `1:1` (default), `4:3`, `3:4`, `16:9`, `9:16`, `2:3`, `3:2`, `21:9` |
+| `aspect_ratio` | string | No | `1:1` (default), `4:3`, `3:4`, `4:5`, `5:4`, `16:9`, `9:16`, `2:3`, `3:2`, `21:9`, `9:21` |
 
 **Requirements:** at least one of `gesture_id`, `custom_reference`, or `custom_prompt` must be provided. Both `custom_reference` and `custom_prompt` can be used together or separately with either engine.
 
@@ -114,12 +112,16 @@ Submits a generation task and returns immediately.
 ```json
 {
   "task_id": "a1b2c3d4e5f6...",
-  "kie_task_id": "task_seedream_123456",
+  "kie_task_id": "",
   "status": "queued",
   "engine": "seedream5",
-  "estimated_seconds": 30
+  "estimated_seconds": 30,
+  "queue_position": 3,
+  "warning": null
 }
 ```
+
+> `kie_task_id` — external task ID on the generation backend (empty until task is submitted to the engine).
 
 ---
 
@@ -136,11 +138,15 @@ GET /api/v1/status/{task_id}
   "task_id": "a1b2c3d4e5f6...",
   "status": "completed",
   "engine": "seedream5",
-  "result_url": "https://tempfile.example.com/result.jpg",
-  "cost_coins": 15000,
-  "error": null
+  "result_url": "https://cdn.example.com/result.jpg",
+  "cost_coins": 23,
+  "error": null,
+  "queue_position": 0,
+  "warning": null
 }
 ```
+
+> `cost_coins` — processing time in milliseconds on the generation backend.
 
 **Statuses:** `queued` → `running` → `completed` | `failed`
 
@@ -148,7 +154,32 @@ GET /api/v1/status/{task_id}
 
 ---
 
-### 5. Generate (Sync)
+### 5. Check Quota
+
+```
+GET /api/v1/quota
+```
+
+Returns generation quota for the current API key.
+
+**Response:**
+
+```json
+{
+  "generations_used": 24,
+  "generation_limit": 100,
+  "generations_remaining": 76,
+  "plan": "basic"
+}
+```
+
+**Notes:**
+- Only successful generations count against the quota.
+- Billing period resets every 30 days.
+
+---
+
+### 6. Generate (Sync)
 
 ```
 POST /api/v1/generate/sync
@@ -161,13 +192,13 @@ Returns `StatusResponse` directly. Returns `504` on timeout.
 
 ---
 
-### 6. Webhook (internal)
+### 7. Webhooks (internal)
 
 ```
 POST /api/v1/webhook/{provider}
 ```
 
-Receives callbacks from generation backends. Not intended for client use.
+Receive callbacks from generation backends. Not intended for client use.
 
 ---
 
@@ -179,7 +210,7 @@ Receives callbacks from generation backends. Not intended for client use.
 curl -X POST https://onlygen.mvt-soft.work/api/v1/generate \
   -H "X-API-Key: gc_your_key" \
   -F "user_photo=@photo.jpg" \
-  -F "gesture_id=v_sign" \
+  -F "gesture_id=peace_palm" \
   -F "engine=seedream5"
 ```
 
@@ -189,7 +220,7 @@ curl -X POST https://onlygen.mvt-soft.work/api/v1/generate \
 curl -X POST https://onlygen.mvt-soft.work/api/v1/generate \
   -H "X-API-Key: gc_your_key" \
   -F "user_photo=@photo.jpg" \
-  -F "gesture_id=v_sign" \
+  -F "gesture_id=peace_palm" \
   -F "engine=seedream4"
 ```
 
@@ -227,7 +258,7 @@ curl -X POST https://onlygen.mvt-soft.work/api/v1/generate \
 curl -X POST https://onlygen.mvt-soft.work/api/v1/generate \
   -H "X-API-Key: gc_your_key" \
   -F "user_photo=@photo.jpg" \
-  -F "gesture_id=v_sign" \
+  -F "gesture_id=peace_palm" \
   -F "aspect_ratio=9:16"
 ```
 
@@ -273,7 +304,7 @@ async def generate_gesture(photo_path: str, gesture_id: str, engine: str = "seed
                 return data
             await asyncio.sleep(5)
 
-result = asyncio.run(generate_gesture("photo.jpg", "v_sign", "seedream5"))
+result = asyncio.run(generate_gesture("photo.jpg", "peace_palm", "seedream5"))
 print(result["result_url"])
 ```
 
@@ -283,7 +314,7 @@ print(result["result_url"])
 
 Requests are processed through a Redis-backed queue with concurrency limiting.
 
-- **Max concurrent tasks:** 3 (configurable)
+- **Max concurrent tasks:** 10 (configurable)
 - **Max queue size:** 100
 - If the queue is full, the API returns `503 Service Unavailable`
 - Queue status is available via `/health`
@@ -353,7 +384,7 @@ Full widget documentation: [WIDGET_INTEGRATION.md](WIDGET_INTEGRATION.md)
 
 ## File Constraints
 
-- **Formats:** JPEG, PNG
+- **Formats:** JPEG, PNG, WebP
 - **Max size:** 10 MB
 - **Validation:** magic bytes + Pillow verify + re-encode
 - **Prompt max length:** 3000 characters

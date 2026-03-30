@@ -1,33 +1,33 @@
 # Gesture Changer API — LLM Integration Reference
 
 > Machine-readable API specification for LLM agents and code generators.
-> Version: 1.1.0 | Updated: 2026-03-28
+> Version: 2.1.0 | Updated: 2026-03-30
 
 ## API Overview
 
 ```yaml
 name: Gesture Changer API
-version: 1.1.0
+version: 2.0.0
 base_url: "https://onlygen.mvt-soft.work"
 auth:
   type: header
   header_name: X-API-Key
   prefix: "gc_"
-  format: "gc_{random_hex_64}"
+  format: "gc_{token_urlsafe_32}"  # 43 base64 chars
 rate_limits:
   per_key: "10/minute"
   global: "100/minute"
 engines:
-  - id: "qwen"
-    name: "Qwen Image Edit"
-    requires_reference: true
-    prompt_language: "Chinese (auto from preset)"
+  - id: "seedream5"
+    name: "Seedream 5.0 Lite"
+    description: "Lightweight gesture replacement, better identity preservation"
     default: true
-  - id: "kontext"
-    name: "FLUX Kontext Dev"
-    requires_reference: false
-    prompt_language: "English"
+  - id: "seedream4"
+    name: "Seedream 4.5 Edit"
+    description: "Precise gesture replacement, maximum realism"
     default: false
+aspect_ratios: ["1:1", "4:3", "3:4", "4:5", "5:4", "16:9", "9:16", "2:3", "3:2", "21:9", "9:21"]
+result_url_expiry: "20 minutes"
 ```
 
 ## Endpoints
@@ -47,8 +47,8 @@ response_schema:
   presets:
     type: array
     items:
-      id: string          # e.g. "v_sign", "finger_gun", "l_pose_up"
-      name: string        # e.g. "Peace / V Sign"
+      id: string          # e.g. "peace_palm", "finger_gun", "l_pose"
+      name: string        # e.g. "Peace (Palm)"
       emoji: string       # e.g. "✌️"
       category: string    # basic|cute|face_touch|chill|number|playful|formal|interactive|luck
       preview_url: string # full URL to preview image
@@ -71,22 +71,22 @@ request_fields:
   user_photo:
     type: file
     required: true
-    formats: [jpeg, png]
+    formats: [jpeg, png, webp]
     max_size: "10MB"
   gesture_id:
     type: string
-    required: conditional
-    description: "Preset ID. Required for qwen if no custom_reference. Required for kontext if no custom_prompt."
-    example: "v_sign"
+    required: false
+    description: "Preset ID from /presets"
+    example: "peace_palm"
   custom_reference:
     type: file
-    required: conditional
-    description: "Custom gesture reference photo. Qwen engine only. Required if no gesture_id."
+    required: false
+    description: "Custom gesture reference photo"
   custom_prompt:
     type: string
-    required: conditional
-    max_length: 200
-    description: "Custom text prompt. For kontext: required if no gesture_id."
+    required: false
+    max_length: 3000
+    description: "Custom text prompt for generation"
   webhook_url:
     type: string
     required: false
@@ -94,23 +94,23 @@ request_fields:
   engine:
     type: string
     required: false
-    default: "qwen"
-    enum: ["qwen", "kontext"]
-    description: "Generation engine"
+    default: "seedream5"
+    enum: ["seedream5", "seedream4"]
+  aspect_ratio:
+    type: string
+    required: false
+    default: "1:1"
+    enum: ["1:1", "4:3", "3:4", "4:5", "5:4", "16:9", "9:16", "2:3", "3:2", "21:9", "9:21"]
+validation:
+  - "At least one of gesture_id, custom_reference, or custom_prompt must be provided"
+  - "custom_reference and custom_prompt can be used together or separately with either engine"
 response_schema:
   task_id: string        # hex UUID, use for polling
-  rh_task_id: string     # internal RunningHub ID
+  kie_task_id: string    # external task ID on generation backend
   status: string         # always "queued" on creation
-  engine: string         # "qwen" or "kontext"
+  engine: string         # "seedream5" or "seedream4"
   estimated_seconds: 30
-engine_requirements:
-  qwen:
-    - "gesture_id OR custom_reference must be provided"
-    - "custom_reference is a file upload (gesture reference image)"
-  kontext:
-    - "gesture_id OR custom_prompt must be provided"
-    - "custom_reference is ignored"
-    - "prompts should be in English"
+  queue_position: integer  # position in queue (0 = not queued / processing)
 ```
 
 ### GET /api/v1/status/{task_id}
@@ -122,16 +122,30 @@ path_params:
 response_schema:
   task_id: string
   status: enum[queued, running, completed, failed]
-  engine: string         # "qwen" or "kontext"
-  result_url: string|null    # image URL when completed
-  cost_coins: integer|null
-  generation_time_seconds: float|null
+  engine: string         # "seedream5" or "seedream4"
+  result_url: string|null    # temporary image URL when completed (expires in 20min)
+  cost_coins: integer|null   # processing time in ms
   error: string|null         # error message when failed
+  queue_position: integer    # position in queue (0 = not queued / processing)
 polling:
   recommended_interval: 5s
   backoff: 1.5x
   max_interval: 30s
-  typical_completion: 20-60s
+  typical_completion: 10-30s
+```
+
+### GET /api/v1/quota
+
+```yaml
+auth: true
+response_schema:
+  generations_used: integer
+  generation_limit: integer
+  generations_remaining: integer
+  plan: string          # "basic" or "pro"
+notes:
+  - "Only successful generations count against the quota"
+  - "Billing period resets every 30 days"
 ```
 
 ### POST /api/v1/generate/sync
@@ -140,46 +154,57 @@ polling:
 auth: true
 content_type: multipart/form-data
 request_fields: "Same as POST /api/v1/generate (minus webhook_url)"
-timeout: 120s
+timeout: 180s
 response_schema: "Same as GET /api/v1/status/{task_id}"
 notes:
-  - "Blocks until task completes or 120s timeout"
+  - "Blocks until task completes or 180s timeout"
   - "Returns 504 on timeout"
 ```
 
-### POST /api/v1/webhook/runninghub
+### POST /api/v1/webhook/{provider}
 
 ```yaml
-auth: webhook_secret_token (query param)
-purpose: "Internal — receives RunningHub task events"
+auth: HMAC-SHA256 signature
+purpose: "Internal — receives generation backend callbacks"
 not_for_client_use: true
 ```
 
 ## Error Codes
 
 ```yaml
-400: "Missing required fields for selected engine"
+400: "Missing required fields"
 401: "Invalid or expired API key"
-403: "Revoked API key"
+403: "Revoked API key or invalid webhook signature"
 404: "Unknown gesture_id or task_id"
-422: "Invalid engine value or prompt validation failed"
+422: "Invalid engine/aspect_ratio value or prompt validation failed"
 429: "Rate limit exceeded (retry_after in response)"
+503: "Queue full — retry after delay"
 504: "Sync generation timeout"
 ```
 
-## Available Presets (22 total)
+## Task Queue
+
+```yaml
+backend: Redis
+max_concurrent_tasks: 10
+max_queue_size: 100
+behavior_when_full: "503 Service Unavailable"
+health_endpoint: "GET /health returns queue_length, queue_max_concurrency, queue_max_size"
+```
+
+## Available Presets (34 total)
 
 ```yaml
 categories:
-  basic: ["l_pose_up", "v_sign", "thumbs_up", "ok_sign", "open_palm"]
-  cute: ["heart_fingers", "finger_heart", "air_kiss"]
-  face_touch: ["chin_rest", "cheek_touch", "temple_tap"]
-  chill: ["hang_loose", "rock_on"]
-  number: ["one_finger", "two_fingers", "three_fingers"]
-  playful: ["finger_gun", "pinch", "snap"]
-  formal: ["handshake", "salute"]
-  interactive: ["high_five", "fist_bump"]
-  luck: ["crossed_fingers"]
+  basic (10): ["l_pose", "peace_palm", "peace_back", "thumbs_up", "thumbs_down", "ok_sign_palm", "ok_sign_back", "fist", "open_palm", "open_palm_back"]
+  playful (5): ["finger_gun_side", "finger_gun", "rock_horns_palm", "rock_horns_thumb", "rock_horns_back"]
+  number (9): ["index_up", "three_fingers_palm", "three_fingers_back", "four_fingers_palm", "four_fingers_back", "three_spread_palm", "three_spread_back", "three_compact_palm", "three_compact_back"]
+  cute (2): ["korean_love", "heart_hands"]
+  face_touch (3): ["pointing_face", "chin_rest", "shush"]
+  luck (2): ["crossed_fingers_back", "crossed_fingers_palm"]
+  interactive (1): ["pointing_camera"]
+  chill (1): ["call_me"]
+  formal (1): ["salute"]
 ```
 
 ## Integration Patterns
@@ -189,7 +214,7 @@ categories:
 ```
 1. POST /api/v1/generate → get task_id
 2. Loop: GET /api/v1/status/{task_id}
-   - if status == "completed" → use result_url
+   - if status == "completed" → use result_url (download within 20min!)
    - if status == "failed" → handle error
    - else → sleep(5s) and retry
 ```
@@ -215,7 +240,7 @@ categories:
 ```python
 import httpx
 
-async def generate(photo_bytes: bytes, gesture_id: str, engine: str = "qwen") -> dict:
+async def generate(photo_bytes: bytes, gesture_id: str, engine: str = "seedream5") -> dict:
     async with httpx.AsyncClient(timeout=30) as c:
         r = await c.post(
             f"{BASE_URL}/api/v1/generate",
@@ -242,7 +267,7 @@ async def poll(task_id: str) -> dict:
 ### JavaScript (fetch)
 
 ```javascript
-async function generate(photoFile, gestureId, engine = "qwen") {
+async function generate(photoFile, gestureId, engine = "seedream5") {
   const form = new FormData();
   form.append("user_photo", photoFile);
   form.append("gesture_id", gestureId);
@@ -268,37 +293,89 @@ async function poll(taskId) {
 }
 ```
 
+## Embeddable Widget
+
+```yaml
+type: iframe
+url: "https://onlygen.mvt-soft.work/static/widget/index.html"
+params:
+  key:
+    type: string
+    required: true
+    description: "API key (gc_...)"
+  theme:
+    type: string
+    enum: ["dark", "light"]
+    default: "light"
+  engine:
+    type: string
+    enum: ["seedream5", "seedream4"]
+    default: "seedream5"
+  lang:
+    type: string
+    enum: ["ru", "en"]
+    default: "ru"
+embed_example: '<iframe src="https://onlygen.mvt-soft.work/static/widget/index.html?key=API_KEY&theme=dark" width="450" height="700" frameborder="0"></iframe>'
+postmessage_events:
+  onlygen_result:
+    task_id: string
+    result_url: string
+    status: "completed"
+  onlygen_error:
+    error: string
+recommended_size: "450x700px (min 360x600px)"
+```
+
 ### cURL
 
 ```bash
-# Generate with preset (Qwen)
+# Generate with preset (Seedream 5.0)
 curl -X POST ${BASE_URL}/api/v1/generate \
   -H "X-API-Key: ${API_KEY}" \
   -F "user_photo=@photo.jpg" \
-  -F "gesture_id=v_sign" \
-  -F "engine=qwen"
+  -F "gesture_id=peace_palm" \
+  -F "engine=seedream5"
 
-# Generate with preset (Kontext)
+# Generate with preset (Seedream 4.5)
 curl -X POST ${BASE_URL}/api/v1/generate \
   -H "X-API-Key: ${API_KEY}" \
   -F "user_photo=@photo.jpg" \
-  -F "gesture_id=v_sign" \
-  -F "engine=kontext"
+  -F "gesture_id=peace_palm" \
+  -F "engine=seedream4"
 
-# Generate with custom prompt (Kontext only)
+# Generate with custom prompt
 curl -X POST ${BASE_URL}/api/v1/generate \
   -H "X-API-Key: ${API_KEY}" \
   -F "user_photo=@photo.jpg" \
-  -F "custom_prompt=Change hand to thumbs up" \
-  -F "engine=kontext"
+  -F "custom_prompt=Change hand to thumbs up"
+
+# Generate with custom reference photo
+curl -X POST ${BASE_URL}/api/v1/generate \
+  -H "X-API-Key: ${API_KEY}" \
+  -F "user_photo=@photo.jpg" \
+  -F "custom_reference=@reference.jpg"
+
+# Generate with custom prompt + reference
+curl -X POST ${BASE_URL}/api/v1/generate \
+  -H "X-API-Key: ${API_KEY}" \
+  -F "user_photo=@photo.jpg" \
+  -F "custom_reference=@reference.jpg" \
+  -F "custom_prompt=Match pose exactly"
+
+# Generate with custom aspect ratio
+curl -X POST ${BASE_URL}/api/v1/generate \
+  -H "X-API-Key: ${API_KEY}" \
+  -F "user_photo=@photo.jpg" \
+  -F "gesture_id=peace_palm" \
+  -F "aspect_ratio=9:16"
 
 # Check status
 curl ${BASE_URL}/api/v1/status/{task_id} \
   -H "X-API-Key: ${API_KEY}"
 
-# Sync generate (blocks up to 120s)
+# Sync generate (blocks up to 180s)
 curl -X POST ${BASE_URL}/api/v1/generate/sync \
   -H "X-API-Key: ${API_KEY}" \
   -F "user_photo=@photo.jpg" \
-  -F "gesture_id=v_sign"
+  -F "gesture_id=peace_palm"
 ```
