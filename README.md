@@ -72,14 +72,14 @@ Returns all gesture presets grouped by category.
       "id": "v_sign",
       "name": "Peace / V Sign",
       "emoji": "✌️",
-      "category": "basic",
+      "category": "popular",
       "preview_url": "https://onlygen.mvt-soft.work/static/presets/v_sign.jpg"
     }
   ],
   "categories": [
-    {"id": "basic", "label": "Basic gestures", "count": 5}
+    {"id": "popular", "label": "Popular", "count": 8}
   ],
-  "total": 34,
+  "total": 23,
   "custom_gesture_supported": true
 }
 ```

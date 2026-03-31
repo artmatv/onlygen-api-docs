@@ -75,7 +75,7 @@ Returns all gesture presets grouped by category.
     }
   ],
   "categories": [
-    {"id": "basic", "label": "Basic gestures", "count": 5}
+    {"id": "popular", "label": "Popular", "count": 8}
   ],
   "total": 23,
   "custom_gesture_supported": true
