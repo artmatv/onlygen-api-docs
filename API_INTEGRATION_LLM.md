@@ -1,7 +1,11 @@
+<p align="center">
+  <img src="./logo/onlygen-logo-cropped.svg" alt="OnlyGen" width="180">
+</p>
+
 # Gesture Changer API — LLM Integration Reference
 
 > Machine-readable API specification for LLM agents and code generators.
-> Version: 2.2.0 | Updated: 2026-03-30
+> Version: 2.2.0 | Updated: 2026-04-05
 
 ## API Overview
 

@@ -1,8 +1,12 @@
+<p align="center">
+  <img src="./logo/onlygen-logo-cropped.svg" alt="OnlyGen" width="180">
+</p>
+
 # Gesture Changer API — Integration Guide
 
 > **Version:** 2.2.0
 > **Base URL:** `https://onlygen.mvt-soft.work`
-> **Updated:** 2026-03-30
+> **Updated:** 2026-04-05
 
 ## Authentication
 

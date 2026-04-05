@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./logo/onlygen-logo-cropped.svg" alt="OnlyGen" width="180">
+</p>
+
 # OnlyGen Widget — Интеграция в CRM
 
 Встраиваемый виджет для генерации жестов прямо из панели оператора.
