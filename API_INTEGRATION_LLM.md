@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="./logo/onlygen-logo-cropped.svg" alt="OnlyGen" width="180">
+  <img src="../static/logo/onlygen-logo-cropped.svg" alt="OnlyGen" width="180">
 </p>
 
 # Gesture Changer API — LLM Integration Reference
 
 > Machine-readable API specification for LLM agents and code generators.
-> Version: 2.2.0 | Updated: 2026-04-05
+> Version: 2.3.0 | Updated: 2026-04-06
 
 ## API Overview
 
@@ -105,9 +105,21 @@ request_fields:
     required: false
     default: "1:1"
     enum: ["1:1", "4:3", "3:4", "4:5", "5:4", "16:9", "9:16", "2:3", "3:2", "21:9", "9:21"]
+  reference_type:
+    type: string
+    required: false
+    default: "gesture"
+    enum: ["gesture", "pose", "scene", "style"]
+    description: "What to copy from custom_reference image"
+    values:
+      gesture: "Hand gesture and finger positions"
+      pose: "Body pose, posture, arm placement"
+      scene: "Setting, background, environment"
+      style: "Lighting, color grading, photographic style"
 validation:
   - "At least one of gesture_id, custom_reference, or custom_prompt must be provided"
   - "custom_reference and custom_prompt can be used together or separately with either engine"
+  - "reference_type only applies when custom_reference is provided"
 response_schema:
   task_id: string        # hex UUID, use for polling
   kie_task_id: string    # external task ID on generation backend
