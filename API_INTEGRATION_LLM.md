@@ -109,17 +109,20 @@ request_fields:
     type: string
     required: false
     default: "gesture"
-    enum: ["gesture", "pose", "scene", "style"]
-    description: "What to copy from custom_reference image"
+    format: "comma-separated list of types"
+    allowed_values: ["gesture", "pose", "scene", "style"]
+    description: "What to copy from custom_reference image (combinable)"
     values:
       gesture: "Hand gesture and finger positions"
       pose: "Body pose, posture, arm placement"
       scene: "Setting, background, environment"
       style: "Lighting, color grading, photographic style"
+    examples: ["gesture", "pose,style", "gesture,pose,scene"]
 validation:
   - "At least one of gesture_id, custom_reference, or custom_prompt must be provided"
   - "custom_reference and custom_prompt can be used together or separately with either engine"
   - "reference_type only applies when custom_reference is provided"
+  - "Multiple types can be combined with commas (e.g. 'pose,style')"
 response_schema:
   task_id: string        # hex UUID, use for polling
   kie_task_id: string    # external task ID on generation backend

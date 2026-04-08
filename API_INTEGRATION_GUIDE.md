@@ -108,15 +108,17 @@ Submits a generation task and returns immediately.
 | `webhook_url` | string | No | URL to receive completion callback |
 | `engine` | string | No | `seedream5` (default) or `seedream4` |
 | `aspect_ratio` | string | No | `1:1` (default), `4:3`, `3:4`, `4:5`, `5:4`, `16:9`, `9:16`, `2:3`, `3:2`, `21:9`, `9:21` |
-| `reference_type` | string | No | What to copy from the reference: `gesture` (default), `pose`, `scene`, `style` |
+| `reference_type` | string | No | Comma-separated types to copy from reference: `gesture` (default), `pose`, `scene`, `style` |
 
 **Requirements:** at least one of `gesture_id`, `custom_reference`, or `custom_prompt` must be provided. Both `custom_reference` and `custom_prompt` can be used together or separately with either engine.
 
-**Reference types** (used with `custom_reference`):
+**Reference types** (used with `custom_reference`, combinable via comma):
 - `gesture` — copy hand gesture and finger positions from the reference
 - `pose` — copy body pose, posture, and arm placement
 - `scene` — place the person in the same setting/background
 - `style` — match lighting, color grading, and photographic style
+
+Examples: `gesture`, `pose,style`, `gesture,pose,scene`
 
 **Response:**
 
