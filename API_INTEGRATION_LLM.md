@@ -110,14 +110,15 @@ request_fields:
     required: false
     default: "gesture"
     format: "comma-separated list of types"
-    allowed_values: ["gesture", "pose", "scene", "style"]
+    allowed_values: ["gesture", "pose", "outfit", "scene", "style"]
     description: "What to copy from custom_reference image (combinable)"
     values:
       gesture: "Hand gesture and finger positions"
       pose: "Body pose, posture, arm placement"
+      outfit: "Clothing and accessories"
       scene: "Setting, background, environment"
       style: "Lighting, color grading, photographic style"
-    examples: ["gesture", "pose,style", "gesture,pose,scene"]
+    examples: ["gesture", "pose,style", "pose,outfit,scene"]
 validation:
   - "At least one of gesture_id, custom_reference, or custom_prompt must be provided"
   - "custom_reference and custom_prompt can be used together or separately with either engine"
